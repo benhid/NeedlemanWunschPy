@@ -253,5 +253,28 @@ def main():
 
     print("...OK. Total for saving files: {0} seconds\n".format(time.time() - start_time ))
 
+    def readFasta(fileName):
+        try:
+            f = file(fileName)
+        except IOError:
+            print("The file, %s, not exist" % fileName)
+            return
+
+        order = []
+        sequences = {}
+
+        for line in f:
+            name = ''
+            if line.startswith('>'):
+                name = line[1:].rstrip('\n')
+                name = name.replace('_', ' ')
+                order.append(name)
+                sequences[name] = ''
+            else:
+                sequences[name] += line.rstrip('\n').rstrip('*')
+
+        print("%d sequences found" %len(order))
+        return order, sequences
+
 if __name__ == '__main__':
     main()
