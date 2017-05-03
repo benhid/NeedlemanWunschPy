@@ -138,7 +138,7 @@ class NeedlemanWunsch():
         alnseqA, alnseqB, path = [], [], []
         i, j = self.num_cols - 1, self.num_rows - 1
 
-        while i > 0 or j > 0:
+        while i > 0 and j > 0:
             score_diagonal = self.M[i - 1, j - 1] + self.get_score(self.seq_h[j - 1], self.seq_v[i - 1])
             score_up = self.M[i - 1, j] - self.gap_penalty
             score_left = self.M[i, j - 1] - self.gap_penalty
@@ -149,20 +149,20 @@ class NeedlemanWunsch():
                                                                                                       self.M[i-1, j],
                                                                                                       self.M[i, j-1]))
 
-            if i > 0 and j > 0 and max_score == score_diagonal:
-                logger.debug(" > going diagonal")
+            if max_score == score_diagonal:
+                logger.debug(" > going diagonal, i={0}, j={1}".format(i, j))
                 alnseqA.append(self.seq_v[i - 1])
                 alnseqB.append(self.seq_h[j - 1])
                 path.append(self.M[i, j])
                 i, j = i-1, j-1
-            elif i > 0 and max_score == score_up:
-                logger.debug(" > going up")
+            elif max_score == score_up:
+                logger.debug(" > going up, i={0}, j={1}".format(i, j))
                 alnseqA.append(self.seq_v[i - 1])
                 alnseqB.append('-')
                 path.append(self.M[i, j])
                 i -= 1
             elif max_score == score_left:
-                logger.debug(" > going left")
+                logger.debug(" > going left, i={0}, j={1}".format(i, j))
                 alnseqA.append('-')
                 alnseqB.append(self.seq_h[j - 1])
                 path.append(self.M[i, j])
@@ -170,11 +170,13 @@ class NeedlemanWunsch():
 
         # Finish tracing up to the top left cell
         while i > 0:
+            logger.debug(" > going left, i={0}, j={1}".format(i, j))
             alnseqA.append(self.seq_v[i - 1])
             alnseqB.append('-')
             path.append(self.M[i, j])
             i -= 1
         while j > 0:
+            logger.debug(" > going up, i={0}, j={1}".format(i, j))
             alnseqA.append('-')
             alnseqB.append(self.seq_h[j - 1])
             path.append(self.M[i, j])
