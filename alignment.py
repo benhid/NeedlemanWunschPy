@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import logging
+import time
 import numpy as np
 import pandas as pd
 from Bio.SubsMat import MatrixInfo
@@ -202,15 +203,23 @@ class NeedlemanWunsch():
         return "".join(totally_conserved_columns)
 
     def get_score_of_alignment(self):
-        # TODO: This method will be implemented in future releases.
-        pass
+        length_sequence = len(self.seqaln_h)  # length of the first sequence (= length to the second one)
+
+        column = []
+        final_score = 0
+
+        for k in range(length_sequence):
+            final_score += self.get_score(self.seqaln_h[k], self.seqaln_v[k])
+            column.clear()  # clear the list for the next column
+
+        return final_score
 
 
 def main():
     # TODO: Import sequences from .FASTA files
 
     # Initialization
-    seqA = "AAARHEAATAAAARST"
+    seqA = "AAARHEAATAAAAAARHEAATAAAARSTAAARHEAATAAAARSTAAARHEAATAAAARSTAAARHEAATAAAARSTARST"
     seqB = "ARADHAAT"
     gap_penalty = 8  # in this case, gap penalty must be a positive int
     substitution_matrix = MatrixInfo.blosum50  # avaliable matrices: biopython.org/DIST/docs/api/Bio.SubsMat.MatrixInfo-module.html
@@ -220,21 +229,27 @@ def main():
 
     # Run algorithms
     logger.info("Running algorithms...")
+    print("Making matrices...")
+    start_time = time.time()
     aln.scoring_and_traceback_matrices()
+    print("...OK. Total time taken: {0} seconds\n".format(time.time() - start_time ))
     aln.traceback()
     logger.debug("...OK.")
 
     # Print alignments along with the totally conserved columns
-    print("[SEQUENCE1] {0}".format(aln.seqaln_v))
-    print("[CONSERVED] {0}".format(aln.totally_conserved_columns()))
-    print("[SEQUENCE2] {0}".format(aln.seqaln_h))
+    print("Result: \n [SEQUENCE1] {0} \n [CONSERVED] {1} \n [SEQUENCE2] {2}".format(
+        aln.seqaln_v, aln.totally_conserved_columns(), aln.seqaln_h))
+    print("Score (method: sum of pairs) = {0}".format(aln.get_score_of_alignment()))
 
     # Save to file
+    print("Saving matrices into files...")
+    start_time = time.time()
     with open('traceback.txt', 'w') as output:
         output.write('[SEQUENCE1] '+aln.seqaln_v + '\n' +
                      '[CONSERVED] '+aln.totally_conserved_columns() + '\n' +
                      '[SEQUENCE2] '+aln.seqaln_h)
 
+    print("...OK. Total for saving files: {0} seconds\n".format(time.time() - start_time ))
 
 if __name__ == '__main__':
     main()
