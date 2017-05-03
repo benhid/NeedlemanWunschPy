@@ -102,7 +102,7 @@ class NeedlemanWunsch():
                 score_up = self.M[i - 1, j] - self.gap_penalty
                 score_left = self.M[i, j - 1] - self.gap_penalty
                 max_score = max(score_diagonal, score_up, score_left)
-
+                print("a")
                 self.M[i, j] = max_score
 
                 # Arrows in the traceback matrix (T) indicating which cell each score was derived
@@ -217,17 +217,44 @@ class NeedlemanWunsch():
         return final_score
 
 
+def read_fasta_as_a_list_of_pairs(filename):
+    try:
+        f = open(filename,'r')
+    except:
+        raise Exception('File not found!')
+
+    seq = None
+    id = None
+    list = []
+
+    for line in f:
+        if line.strip():
+            if line.startswith('>'):
+                if id is not None:
+                    list.append([id, seq])
+
+                id = line[1:].strip()
+                seq = ''
+            else:
+                seq += line.strip()
+
+    list.append([id, seq])
+
+    f.close()
+    return list
+
+
 def main():
     # TODO: Import sequences from .FASTA files
 
     # Initialization
-    seqA = "AAARHEAATAAAAAARHEAATAAAARSTAAARHEAATAAAARSTAAARHEAATAAAARSTAAARHEAATAAAARSTARST"
-    seqB = "ARADHAAT"
+    seqA = read_fasta_as_a_list_of_pairs("Data/MUC16_HUMAN.fasta")
+    seqB = read_fasta_as_a_list_of_pairs("Data/RN213_HUMAN.fasta")
     gap_penalty = 8  # in this case, gap penalty must be a positive int
     substitution_matrix = MatrixInfo.blosum50  # avaliable matrices: biopython.org/DIST/docs/api/Bio.SubsMat.MatrixInfo-module.html
 
     # Create the alignment
-    aln = NeedlemanWunsch(seqA, seqB, gap_penalty, substitution_matrix)
+    aln = NeedlemanWunsch(seqA[0][1], seqB[0][1], gap_penalty, substitution_matrix)
 
     # Run algorithms
     logger.info("Running algorithms...")
@@ -253,28 +280,6 @@ def main():
 
     print("...OK. Total for saving files: {0} seconds\n".format(time.time() - start_time ))
 
-    def readFasta(fileName):
-        try:
-            f = file(fileName)
-        except IOError:
-            print("The file, %s, not exist" % fileName)
-            return
-
-        order = []
-        sequences = {}
-
-        for line in f:
-            name = ''
-            if line.startswith('>'):
-                name = line[1:].rstrip('\n')
-                name = name.replace('_', ' ')
-                order.append(name)
-                sequences[name] = ''
-            else:
-                sequences[name] += line.rstrip('\n').rstrip('*')
-
-        print("%d sequences found" %len(order))
-        return order, sequences
 
 if __name__ == '__main__':
     main()
