@@ -102,7 +102,7 @@ class NeedlemanWunsch():
                 score_up = self.M[i - 1, j] - self.gap_penalty
                 score_left = self.M[i, j - 1] - self.gap_penalty
                 max_score = max(score_diagonal, score_up, score_left)
-                print("a")
+                #print("a")
                 self.M[i, j] = max_score
 
                 # Arrows in the traceback matrix (T) indicating which cell each score was derived
@@ -248,8 +248,8 @@ def main():
     # TODO: Import sequences from .FASTA files
 
     # Initialization
-    seqA = read_fasta_as_a_list_of_pairs("Data/MUC16_HUMAN.fasta")
-    seqB = read_fasta_as_a_list_of_pairs("Data/RN213_HUMAN.fasta")
+    seqA = read_fasta_as_a_list_of_pairs("Data/a.fasta")
+    seqB = read_fasta_as_a_list_of_pairs("Data/b.fasta")
     gap_penalty = 8  # in this case, gap penalty must be a positive int
     substitution_matrix = MatrixInfo.blosum50  # avaliable matrices: biopython.org/DIST/docs/api/Bio.SubsMat.MatrixInfo-module.html
 
