@@ -86,13 +86,13 @@ class NeedlemanWunsch():
 
         # First column and row
         self.M[0, 0] = 0
-        self.T[0, 0] = "•"
+        #self.T[0, 0] = "•"
         for i in range(1, self.num_cols):  # First row
             self.M[i, 0] = self.M[i - 1, 0] - self.gap_penalty
-            self.T[i, 0] = "↑"
+            #self.T[i, 0] = "↑"
         for j in range(1, self.num_rows):  # First column
             self.M[0, j] = self.M[0, j - 1] - self.gap_penalty
-            self.T[0, j] = "←"
+            #self.T[0, j] = "←"
 
         # Rest of the matrix (recursive)
         for i in range(1, self.num_cols):
@@ -102,20 +102,20 @@ class NeedlemanWunsch():
                 score_up = self.M[i - 1, j] - self.gap_penalty
                 score_left = self.M[i, j - 1] - self.gap_penalty
                 max_score = max(score_diagonal, score_up, score_left)
-                print("a")
+
                 self.M[i, j] = max_score
 
                 # Arrows in the traceback matrix (T) indicating which cell each score was derived
-                if max_score == score_diagonal:
-                    self.T[i, j] = '↖'
-                elif max_score == score_up:
-                    self.T[i, j] = '↑'
-                else:
-                    self.T[i, j] = '←'
+                #if max_score == score_diagonal:
+                    #self.T[i, j] = '↖'
+                #elif max_score == score_up:
+                    #self.T[i, j] = '↑'
+                #else:
+                    #self.T[i, j] = '←'
 
         logger.debug("Saving matrices into .csv files...")
         self.save_matrix_to_file(self.M, 'scoring_matrix')
-        self.save_matrix_to_file(self.T, 'traceback_matrix')
+        #self.save_matrix_to_file(self.T, 'traceback_matrix')
         logger.debug("...OK.")
 
     def save_matrix_to_file(self, matrix, filename):
@@ -245,11 +245,13 @@ def read_fasta_as_a_list_of_pairs(filename):
 
 
 def main():
-    # TODO: Import sequences from .FASTA files
-
     # Initialization
+    logger.info("Reading .fasta...")
+    start_time = time.time()
     seqA = read_fasta_as_a_list_of_pairs("Data/MUC16_HUMAN.fasta")
     seqB = read_fasta_as_a_list_of_pairs("Data/RN213_HUMAN.fasta")
+    logger.info("...OK. Total to read the fasta files: {0} seconds\n".format(time.time() - start_time ))
+
     gap_penalty = 8  # in this case, gap penalty must be a positive int
     substitution_matrix = MatrixInfo.blosum50  # avaliable matrices: biopython.org/DIST/docs/api/Bio.SubsMat.MatrixInfo-module.html
 
@@ -258,27 +260,36 @@ def main():
 
     # Run algorithms
     logger.info("Running algorithms...")
-    print("Making matrices...")
+
+    ## Matrices
+    logger.info("Making matrices...")
     start_time = time.time()
     aln.scoring_and_traceback_matrices()
-    print("...OK. Total time taken: {0} seconds\n".format(time.time() - start_time ))
+    logger.info("...OK. Total time taken: {0} seconds\n".format(time.time() - start_time ))
+
+    ## Traceback
+    logger.info("Running Traceback...")
     aln.traceback()
     logger.debug("...OK.")
 
     # Print alignments along with the totally conserved columns
-    print("Result: \n [SEQUENCE1] {0} \n [CONSERVED] {1} \n [SEQUENCE2] {2}".format(
-        aln.seqaln_v, aln.totally_conserved_columns(), aln.seqaln_h))
-    print("Score (method: sum of pairs) = {0}".format(aln.get_score_of_alignment()))
+    # print("Result: \n [SEQUENCE1] {0} \n [CONSERVED] {1} \n [SEQUENCE2] {2}".format(
+        # aln.seqaln_v, aln.totally_conserved_columns(), aln.seqaln_h))
+
+    ## Score
+    logger.info("Getting score...")
+    start_time = time.time()
+    logger.info("Score (method: sum of pairs) = {0}".format(aln.get_score_of_alignment()))
+    logger.info("...OK. Total time taken: {0} seconds\n".format(time.time() - start_time ))
 
     # Save to file
-    print("Saving matrices into files...")
+    logger.info("Saving traceback...")
     start_time = time.time()
     with open('traceback.txt', 'w') as output:
         output.write('[SEQUENCE1] '+aln.seqaln_v + '\n' +
                      '[CONSERVED] '+aln.totally_conserved_columns() + '\n' +
                      '[SEQUENCE2] '+aln.seqaln_h)
-
-    print("...OK. Total for saving files: {0} seconds\n".format(time.time() - start_time ))
+        logger.info("...OK. Total for saving: {0} seconds\n".format(time.time() - start_time ))
 
 
 if __name__ == '__main__':
