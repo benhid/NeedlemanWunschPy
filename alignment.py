@@ -2,6 +2,7 @@
 
 import logging
 import time
+import psutil
 import numpy as np
 import pandas as pd
 from Bio.SubsMat import MatrixInfo
@@ -9,17 +10,16 @@ from Bio.SubsMat import MatrixInfo
 # About
 __author__ = "Antonio Benitez Hidalgo"
 __email__ = "antonio.b@uma.es"
-__version__ = "1.0-SNAPSHOT"
+__version__ = "1.1-SNAPSHOT"
 
-# Logger for debug
+# Config logger for debug
 LOG_FILENAME = 'log.txt'
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 handler = logging.FileHandler("log.log", mode='w')
 formatter = logging.Formatter('%(asctime)s - %(name)-5s - %(levelname)-5s - %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
-
 
 """
  Global alignment with simple gap costs using the Needleman-Wunsch algorithm.
@@ -126,7 +126,7 @@ class NeedlemanWunsch():
         """
 
         data = pd.DataFrame(matrix, index=list(' ' + self.seq_v), columns=list(' ' + self.seq_h))
-        data.to_csv(filename+'.csv', sep=',', encoding='utf-8')
+        data.to_csv(filename+'.csv', sep=',', encoding='utf8')
 
     def traceback(self):
         """ Traceback algorithm. We can make the traceback looking to the traceback matrix (T):
@@ -219,7 +219,7 @@ class NeedlemanWunsch():
 
 def read_fasta_as_a_list_of_pairs(filename):
     try:
-        f = open(filename,'r')
+        f = open(filename,'r', encoding="utf8")
     except:
         raise Exception('File not found!')
 
@@ -248,12 +248,17 @@ def main():
     # Initialization
     logger.info("Reading .fasta...")
     start_time = time.time()
-    seqA = read_fasta_as_a_list_of_pairs("Data/MUC16_HUMAN.fasta")
-    seqB = read_fasta_as_a_list_of_pairs("Data/RN213_HUMAN.fasta")
-    logger.info("...OK. Total to read the fasta files: {0} seconds\n".format(time.time() - start_time ))
+    seqA = read_fasta_as_a_list_of_pairs("Data/test1.fasta")
+    seqB = read_fasta_as_a_list_of_pairs("Data/test2.fasta")
+    logger.info("...OK. Elapsed time to read the fasta files: {0} seconds\n".format(time.time() - start_time ))
 
     gap_penalty = 8  # in this case, gap penalty must be a positive int
-    substitution_matrix = MatrixInfo.blosum50  # avaliable matrices: biopython.org/DIST/docs/api/Bio.SubsMat.MatrixInfo-module.html
+    substitution_matrix = MatrixInfo.blosum50
+
+    main_start_time = time.clock()
+
+    # Start logger
+    logger.info("STARTING")
 
     # Create the alignment
     aln = NeedlemanWunsch(seqA[0][1], seqB[0][1], gap_penalty, substitution_matrix)
@@ -265,31 +270,33 @@ def main():
     logger.info("Making matrices...")
     start_time = time.time()
     aln.scoring_and_traceback_matrices()
-    logger.info("...OK. Total time taken: {0} seconds\n".format(time.time() - start_time ))
+    logger.info("...OK. Elapsed time to filling matrices: {0} seconds\n".format(time.time() - start_time ))
 
     ## Traceback
     logger.info("Running Traceback...")
+    start_time = time.time()
     aln.traceback()
-    logger.debug("...OK.")
-
-    # Print alignments along with the totally conserved columns
-    # print("Result: \n [SEQUENCE1] {0} \n [CONSERVED] {1} \n [SEQUENCE2] {2}".format(
-        # aln.seqaln_v, aln.totally_conserved_columns(), aln.seqaln_h))
+    logger.info("...OK. Elapsed time to traceback: {0} seconds\n".format(time.time() - start_time ))
 
     ## Score
     logger.info("Getting score...")
     start_time = time.time()
     logger.info("Score (method: sum of pairs) = {0}".format(aln.get_score_of_alignment()))
-    logger.info("...OK. Total time taken: {0} seconds\n".format(time.time() - start_time ))
+    logger.info("...OK. Elapsed time: {0} seconds\n".format(time.time() - start_time ))
 
     # Save to file
     logger.info("Saving traceback...")
     start_time = time.time()
     with open('traceback.txt', 'w') as output:
-        output.write('[SEQUENCE1] '+aln.seqaln_v + '\n' +
-                     '[CONSERVED] '+aln.totally_conserved_columns() + '\n' +
-                     '[SEQUENCE2] '+aln.seqaln_h)
-        logger.info("...OK. Total for saving: {0} seconds\n".format(time.time() - start_time ))
+        output.write('[SEQUENCE1] ' + aln.seqaln_v + '\n' +
+                     '[CONSERVED] ' + aln.totally_conserved_columns() + '\n' +
+                     '[SEQUENCE2] ' + aln.seqaln_h)
+        logger.info("...OK. Elapsed time for saving: {0} seconds\n".format(time.time() - start_time ))
+
+    main_end_time = time.clock()
+    print("The execution time is: {0} seconds".format((str(main_end_time - main_start_time))))
+
+    logger.info("FINISHED.")
 
 
 if __name__ == '__main__':
