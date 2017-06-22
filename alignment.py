@@ -2,6 +2,7 @@
 
 import logging.config
 import time
+import os
 
 import numpy as np
 import pandas as pd
@@ -118,7 +119,10 @@ class NeedlemanWunschLinear():
         """
 
         data = pd.DataFrame(matrix, index=list(' ' + self.seq_v), columns=list(' ' + self.seq_h))
-        data.to_csv(filename+'.csv', sep=',', encoding='utf8')
+
+        # Save to output directory
+        os.makedirs(os.path.dirname("output/"), exist_ok=True)
+        data.to_csv("output/"+filename+'.csv', sep=',', encoding='utf8')
 
     @get_time_of_execution
     def traceback(self):
@@ -255,7 +259,7 @@ def main():
     ## Score
 
     # Save to file
-    with open('traceback.txt', 'w') as output:
+    with open('output/traceback.txt', 'w') as output:
         output.write('[SEQUENCE1] ' + aln.seqaln_v + '\n' +
                      '[CONSERVED] ' + aln.totally_conserved_columns() + '\n' +
                      '[SEQUENCE2] ' + aln.seqaln_h)
