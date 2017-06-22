@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_time_of_execution(f):
-    ''' Decorator to get time of execution '''
+    """ Decorator to get time of execution """
 
     def wrapped(*args, **kwargs):
         start_time = time.time()
