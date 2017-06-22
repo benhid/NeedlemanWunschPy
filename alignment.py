@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-import logging
+import logging.config
 import time
-import psutil
+
 import numpy as np
 import pandas as pd
 from Bio.SubsMat import MatrixInfo
@@ -10,16 +10,13 @@ from Bio.SubsMat import MatrixInfo
 # About
 __author__ = "Antonio Benitez Hidalgo"
 __email__ = "antonio.b@uma.es"
-__version__ = "1.1-SNAPSHOT"
+__version__ = "1.2-SNAPSHOT"
 
-# Config logger for debug
-LOG_FILENAME = 'log.txt'
+# Load logger config from file
+logging.config.fileConfig("logconfig.ini")
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-handler = logging.FileHandler("log.log", mode='w')
-formatter = logging.Formatter('%(asctime)s - %(name)-5s - %(levelname)-5s - %(message)s')
-handler.setFormatter(formatter)
-logger.addHandler(handler)
+
 
 """
  Global alignment with simple gap costs using the Needleman-Wunsch algorithm.
@@ -31,10 +28,19 @@ logger.addHandler(handler)
 """
 
 
-class NeedlemanWunsch():
+def get_time_of_execution(f):
+    ''' Decorator to get time of execution '''
 
-    # TODO: Tests need to be implemented for this class
-    # TODO: "cythonize" the code in order to improve performance ( http://cython.readthedocs.io/en/latest/index.html )
+    def wrapped(*args, **kwargs):
+        start_time = time.time()
+        res = f(*args, **kwargs)
+        logger.info("Time elapsed to " + f.__name__ + " (s): " + str(time.time() - start_time))
+        return res
+
+    return wrapped
+
+
+class NeedlemanWunsch():
 
     def __init__(self, seqA, seqB, gap_penalty, substitution_matrix):
         self.seq_h = seqA  # seq A (horizontal, rows)
@@ -45,14 +51,13 @@ class NeedlemanWunsch():
         self.num_rows = len(seqA) + 1  # number of rows plus one (the first one)
         self.num_cols = len(seqB) + 1  # number of columns plus one (the first one)
 
-        # Initialization of both matrices of zeros
+        # Initialization of scoring matrix
         self.M = np.zeros(shape=(self.num_cols, self.num_rows), dtype=np.int)  # matrix of zeros of integers (score matrix)
-        self.T = np.zeros(shape=(self.num_cols, self.num_rows), dtype=np.str)  # matrix of zeros of strings (traceback matrix)
 
         # Alignment sequences
         self.seqaln_h = ""
         self.seqaln_v = ""
-        self.aln_score = 0
+        self.seqaln_score = 0
 
     def get_score(self, char1, char2):
         """ Get score from the substitution matrix.
@@ -64,7 +69,8 @@ class NeedlemanWunsch():
             result = 1
         elif char1 is '-' or char2 is '-':
             result = self.gap_penalty
-        else:  # Note that the substitution matrix is triangular
+        else:
+            # Note that the substitution matrix is triangular
             if (char1, char2) in self.substitution_matrix:
                 v = self.substitution_matrix[char1, char2]
             else:
@@ -73,7 +79,8 @@ class NeedlemanWunsch():
 
         return result
 
-    def scoring_and_traceback_matrices(self):
+    @get_time_of_execution
+    def compute_score_matrix(self):
         """ Needleman Wunsch algorithm. Formula:
                 M(0,0) = 0
                 M(i,0) = M(i-1,0) - gap_penalty
@@ -86,13 +93,10 @@ class NeedlemanWunsch():
 
         # First column and row
         self.M[0, 0] = 0
-        #self.T[0, 0] = "•"
         for i in range(1, self.num_cols):  # First row
             self.M[i, 0] = self.M[i - 1, 0] - self.gap_penalty
-            #self.T[i, 0] = "↑"
         for j in range(1, self.num_rows):  # First column
             self.M[0, j] = self.M[0, j - 1] - self.gap_penalty
-            #self.T[0, j] = "←"
 
         # Rest of the matrix (recursive)
         for i in range(1, self.num_cols):
@@ -105,19 +109,9 @@ class NeedlemanWunsch():
 
                 self.M[i, j] = max_score
 
-                # Arrows in the traceback matrix (T) indicating which cell each score was derived
-                #if max_score == score_diagonal:
-                    #self.T[i, j] = '↖'
-                #elif max_score == score_up:
-                    #self.T[i, j] = '↑'
-                #else:
-                    #self.T[i, j] = '←'
-
-        logger.debug("Saving matrices into .csv files...")
         self.save_matrix_to_file(self.M, 'scoring_matrix')
-        #self.save_matrix_to_file(self.T, 'traceback_matrix')
-        logger.debug("...OK.")
 
+    @get_time_of_execution
     def save_matrix_to_file(self, matrix, filename):
         """ Save matrix dataframe into a .csv file separated by commas.
 
@@ -128,6 +122,7 @@ class NeedlemanWunsch():
         data = pd.DataFrame(matrix, index=list(' ' + self.seq_v), columns=list(' ' + self.seq_h))
         data.to_csv(filename+'.csv', sep=',', encoding='utf8')
 
+    @get_time_of_execution
     def traceback(self):
         """ Traceback algorithm. We can make the traceback looking to the traceback matrix (T):
             ...up arrow: we consume a character from the vertical sequence and add a gap to the horizontal one
@@ -143,11 +138,6 @@ class NeedlemanWunsch():
             score_up = self.M[i - 1, j] - self.gap_penalty
             score_left = self.M[i, j - 1] - self.gap_penalty
             max_score = max(score_diagonal, score_up, score_left)
-
-            logger.debug("max score: {0}, score diagonal: {1}, score up: {2}, score left: {3}".format(max_score,
-                                                                                                      self.M[i-1, j-1],
-                                                                                                      self.M[i-1, j],
-                                                                                                      self.M[i, j-1]))
 
             if max_score == score_diagonal:
                 logger.debug(" > going diagonal, i={0}, j={1}".format(i, j))
@@ -205,14 +195,11 @@ class NeedlemanWunsch():
         return "".join(totally_conserved_columns)
 
     def get_score_of_alignment(self):
-        length_sequence = len(self.seqaln_h)  # length of the first sequence (= length to the second one)
-
-        column = []
+        length_sequence = len(self.seqaln_h)  # length of one alignment sequence
         final_score = 0
 
         for k in range(length_sequence):
             final_score += self.get_score(self.seqaln_h[k], self.seqaln_v[k])
-            column.clear()  # clear the list for the next column
 
         return final_score
 
@@ -221,7 +208,8 @@ def read_fasta_as_a_list_of_pairs(filename):
     try:
         f = open(filename,'r', encoding="utf8")
     except:
-        raise Exception('File not found!')
+        logger.error('File not found', exc_info=True)
+        raise FileNotFoundError
 
     seq = None
     id = None
@@ -246,19 +234,13 @@ def read_fasta_as_a_list_of_pairs(filename):
 
 def main():
     # Initialization
-    logger.info("Reading .fasta...")
-    start_time = time.time()
-    seqA = read_fasta_as_a_list_of_pairs("Data/test1.fasta")
-    seqB = read_fasta_as_a_list_of_pairs("Data/test2.fasta")
-    logger.info("...OK. Elapsed time to read the fasta files: {0} seconds\n".format(time.time() - start_time ))
+    seqA = read_fasta_as_a_list_of_pairs("data/test1.fasta")
+    seqB = read_fasta_as_a_list_of_pairs("data/test2.fasta")
 
     gap_penalty = 8  # in this case, gap penalty must be a positive int
     substitution_matrix = MatrixInfo.blosum50
 
-    main_start_time = time.clock()
-
-    # Start logger
-    logger.info("STARTING")
+    main_start_time = time.time()
 
     # Create the alignment
     aln = NeedlemanWunsch(seqA[0][1], seqB[0][1], gap_penalty, substitution_matrix)
@@ -267,36 +249,21 @@ def main():
     logger.info("Running algorithms...")
 
     ## Matrices
-    logger.info("Making matrices...")
-    start_time = time.time()
-    aln.scoring_and_traceback_matrices()
-    logger.info("...OK. Elapsed time to filling matrices: {0} seconds\n".format(time.time() - start_time ))
+    aln.compute_score_matrix()
 
     ## Traceback
-    logger.info("Running Traceback...")
-    start_time = time.time()
     aln.traceback()
-    logger.info("...OK. Elapsed time to traceback: {0} seconds\n".format(time.time() - start_time ))
 
     ## Score
-    logger.info("Getting score...")
-    start_time = time.time()
-    logger.info("Score (method: sum of pairs) = {0}".format(aln.get_score_of_alignment()))
-    logger.info("...OK. Elapsed time: {0} seconds\n".format(time.time() - start_time ))
 
     # Save to file
-    logger.info("Saving traceback...")
-    start_time = time.time()
     with open('traceback.txt', 'w') as output:
         output.write('[SEQUENCE1] ' + aln.seqaln_v + '\n' +
                      '[CONSERVED] ' + aln.totally_conserved_columns() + '\n' +
                      '[SEQUENCE2] ' + aln.seqaln_h)
-        logger.info("...OK. Elapsed time for saving: {0} seconds\n".format(time.time() - start_time ))
 
-    main_end_time = time.clock()
-    print("The execution time is: {0} seconds".format((str(main_end_time - main_start_time))))
-
-    logger.info("FINISHED.")
+    main_end_time = time.time()
+    logger.info("The execution time is: {0} seconds".format((str(main_end_time - main_start_time))))
 
 
 if __name__ == '__main__':
