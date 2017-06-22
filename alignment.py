@@ -15,7 +15,6 @@ __version__ = "1.2-SNAPSHOT"
 # Load logger config from file
 logging.config.fileConfig("logconfig.ini")
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 
 """
@@ -40,8 +39,7 @@ def get_time_of_execution(f):
     return wrapped
 
 
-class NeedlemanWunsch():
-
+class NeedlemanWunschLinear():
     def __init__(self, seqA, seqB, gap_penalty, substitution_matrix):
         self.seq_h = seqA  # seq A (horizontal, rows)
         self.seq_v = seqB  # seq B (vertical, columns)
@@ -176,6 +174,7 @@ class NeedlemanWunsch():
         self.seqaln_h, self.seqaln_v = "".join(alnseqA)[::-1], "".join(alnseqB)[::-1]
         logger.debug('Pathway chosen in the traceback matrix: {0}'.format(path))
 
+    @get_time_of_execution
     def totally_conserved_columns(self):
         """ Method for getting the position of the totally conserved columns.
 
@@ -194,6 +193,7 @@ class NeedlemanWunsch():
 
         return "".join(totally_conserved_columns)
 
+    @get_time_of_execution
     def get_score_of_alignment(self):
         length_sequence = len(self.seqaln_h)  # length of one alignment sequence
         final_score = 0
@@ -203,7 +203,7 @@ class NeedlemanWunsch():
 
         return final_score
 
-
+@get_time_of_execution
 def read_fasta_as_a_list_of_pairs(filename):
     try:
         f = open(filename,'r', encoding="utf8")
@@ -231,7 +231,7 @@ def read_fasta_as_a_list_of_pairs(filename):
     f.close()
     return list
 
-
+@get_time_of_execution
 def main():
     # Initialization
     seqA = read_fasta_as_a_list_of_pairs("data/test1.fasta")
@@ -240,10 +240,8 @@ def main():
     gap_penalty = 8  # in this case, gap penalty must be a positive int
     substitution_matrix = MatrixInfo.blosum50
 
-    main_start_time = time.time()
-
     # Create the alignment
-    aln = NeedlemanWunsch(seqA[0][1], seqB[0][1], gap_penalty, substitution_matrix)
+    aln = NeedlemanWunschLinear(seqA[0][1], seqB[0][1], gap_penalty, substitution_matrix)
 
     # Run algorithms
     logger.info("Running algorithms...")
@@ -261,10 +259,6 @@ def main():
         output.write('[SEQUENCE1] ' + aln.seqaln_v + '\n' +
                      '[CONSERVED] ' + aln.totally_conserved_columns() + '\n' +
                      '[SEQUENCE2] ' + aln.seqaln_h)
-
-    main_end_time = time.time()
-    logger.info("The execution time is: {0} seconds".format((str(main_end_time - main_start_time))))
-
 
 if __name__ == '__main__':
     main()
