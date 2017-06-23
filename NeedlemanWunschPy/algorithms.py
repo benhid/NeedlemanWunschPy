@@ -6,7 +6,6 @@ import time
 
 import numpy as np
 import pandas as pd
-from NeedlemanWunschPy.utils import read_fasta_as_a_list_of_pairs, totally_conserved_columns
 from NeedlemanWunschPy.substitutionmatrix import Blosum50, Blosum62, PAM250
 
 # About
@@ -15,7 +14,7 @@ __email__ = "antonio.b@uma.es"
 __version__ = "1.4-SNAPSHOT"
 
 # Load logger config from file
-logging.config.fileConfig("../logconfig.ini")
+logging.config.fileConfig("logconfig.ini")
 logger = logging.getLogger(__name__)
 
 
@@ -141,7 +140,7 @@ class NeedlemanWunschLinear():
         return seqAaln, seqBaln
 
     @get_time_of_execution
-    def _save_matrix_to_file(self, matrix, filename):
+    def _save_matrix_to_file(self, matrix, filename, dir='output/'):
         """ Save matrix dataframe into a .csv file separated by commas.
 
         :param matrix: Numpy matrix.
@@ -151,34 +150,14 @@ class NeedlemanWunschLinear():
         data = pd.DataFrame(matrix, index=list(' ' + self.seq_v), columns=list(' ' + self.seq_h))
 
         # Save to output directory
-        os.makedirs(os.path.dirname("../output/"), exist_ok=True)
-        data.to_csv("../output/"+filename+'.csv', sep=',', encoding='utf8')
+        os.makedirs(os.path.dirname(dir), exist_ok=True)
+        data.to_csv(dir+filename+'.csv', sep=',', encoding='utf8')
 
     @get_time_of_execution
-    def get_alignment(self, save_score_matrix_to_file = False, filename = 'score_matrix'):
+    def get_alignment(self, save_score_matrix_to_file=False, filename='score_matrix'):
         self._compute_score_matrix()
 
         if save_score_matrix_to_file:
             self._save_matrix_to_file(self.M, filename)
 
         return self._compute_traceback()
-
-
-if __name__ == '__main__':
-    # Example of usage:
-    # Initialization
-    seqA = read_fasta_as_a_list_of_pairs("../data/test1.fasta")
-    seqB = read_fasta_as_a_list_of_pairs("../data/test2.fasta")
-
-    gap_penalty = -2
-    save_score_matrix_to_file = True
-
-    # Create the alignment
-    seqAaln, seqBaln = NeedlemanWunschLinear(seqA[0][1], seqB[0][1], gap_penalty, Blosum50()) \
-        .get_alignment(save_score_matrix_to_file)
-
-    # Save results to file
-    with open('../output/traceback.txt', 'w') as output:
-        output.write('[SEQUENCE1] ' + seqAaln + '\n' +
-                     '[CONSERVED] ' + totally_conserved_columns(seqAaln, seqBaln) + '\n' +
-                     '[SEQUENCE2] ' + seqBaln)
