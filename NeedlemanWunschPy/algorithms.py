@@ -46,7 +46,7 @@ class NeedlemanWunschLinear():
         self.seq_h = seqA  # seq A (horizontal, rows)
         self.seq_v = seqB  # seq B (vertical, columns)
         self.gap_penalty = gap_penalty  # gap penalty both for opening and extension (linear gap penalty)
-        self.substitution_matrix = substitution_matrix.get_distance_matrix()
+        self.substitution_matrix = substitution_matrix
 
         self.num_rows = len(seqA) + 1  # number of rows plus one (the first one)
         self.num_cols = len(seqB) + 1  # number of columns plus one (the first one)
@@ -62,20 +62,7 @@ class NeedlemanWunschLinear():
         """
 
         char1, char2 = self.seq_h[j-1], self.seq_v[i-1]
-
-        if char1 is '-' and char2 is '-':
-            score = 1 # match
-        elif char1 is '-' or char2 is '-':
-            score = self.gap_penalty # gap
-        else:
-            # mismatch
-            # Note that the substitution matrix is triangular
-            if (char1, char2) in self.substitution_matrix:
-                score = self.substitution_matrix[char1, char2]
-            else:
-                score = self.substitution_matrix[char2, char1]
-
-        return score
+        return self.substitution_matrix.get_score(char1, char2, self.gap_penalty)
 
     @get_time_of_execution
     def _compute_score_matrix(self):
@@ -83,7 +70,7 @@ class NeedlemanWunschLinear():
                 M(0,0) = 0
                 M(i,0) = M(i-1,0) - gap_penalty
                 M(0,j) = M(0,j-1) - gap_penalty
-                M(i,j) = max{ M(i-1,j-1) + score , M(i-1,j) - gap_penalty, M(i,j-1) - gap_penalty }
+                M(i,j) = max{ M(i-1,j-1) + score , M(i-1,j) + gap_penalty, M(i,j-1) + gap_penalty }
 
             M will be our scoring matrix.
         """
@@ -98,14 +85,9 @@ class NeedlemanWunschLinear():
         # Rest of the matrix (recursive)
         for i in range(1, self.num_cols):
             for j in range(1, self.num_rows):
-                # current_score = self.get_score(i, j)
-                # score_diagonal = self.M[i - 1, j - 1] + current_score
-                # score_up = self.M[i - 1, j] + self.gap_penalty
-                # score_left = self.M[i, j - 1] + self.gap_penalty
-
-                self.M[i, j] = max(self.M[i-1, j-1] + self._get_score(i, j),
-                                   self.M[i-1, j] + self.gap_penalty,
-                                   self.M[i, j-1] + self.gap_penalty)
+                self.M[i, j] = max(self.M[i-1, j-1] + self._get_score(i, j),  # score_diagonal
+                                   self.M[i-1, j] + self.gap_penalty,  # score_up
+                                   self.M[i, j-1] + self.gap_penalty)  # score_left
 
     @get_time_of_execution
     def _compute_traceback(self):
@@ -116,28 +98,22 @@ class NeedlemanWunschLinear():
         """
 
         seqAaln, seqBaln, path = [], [], []
-
         i, j = self.num_cols - 1, self.num_rows - 1
 
         while i > 0 and j > 0:
-            # score_diagonal = self.M[i - 1, j - 1] + self.get_score(i, j)
-            # score_up = self.M[i - 1, j] + self.gap_penalty
-            # score_left = self.M[i, j - 1] + self.gap_penalty
-            # max_score = max(score_diagonal, score_up, score_left)
-
-            if self.M[i,j] == self.M[i-1, j-1] + self._get_score(i, j):
+            if self.M[i,j] == self.M[i-1, j-1] + self._get_score(i, j):  # score_diagonal
                 logger.debug(" > going diagonal, i={0}, j={1}".format(i, j))
                 seqAaln.append(self.seq_h[j-1])
                 seqBaln.append(self.seq_v[i-1])
                 path.append(self.M[i, j])
                 i, j = i-1, j-1
-            elif self.M[i,j] == self.M[i-1, j] + self.gap_penalty:
+            elif self.M[i,j] == self.M[i-1, j] + self.gap_penalty:  # score_up
                 logger.debug(" > going up, i={0}, j={1}".format(i, j))
                 seqAaln.append('-')
                 seqBaln.append(self.seq_v[i-1])
                 path.append(self.M[i, j])
                 i -= 1
-            else:
+            else:  # score_left
                 logger.debug(" > going left, i={0}, j={1}".format(i, j))
                 seqAaln.append(self.seq_h[j-1])
                 seqBaln.append('-')
@@ -158,7 +134,7 @@ class NeedlemanWunschLinear():
             path.append(self.M[i, j])
             j -= 1
 
-        # Return both reversed NeedlemanWunschPy sequences
+        # Return both reversed sequences
         seqAaln, seqBaln = "".join(seqAaln)[::-1], "".join(seqBaln)[::-1]
         logger.debug('Pathway chosen in the traceback matrix: {0}'.format(path))
 
