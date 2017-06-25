@@ -1,13 +1,15 @@
 class SubstitutionMatrix:
+    def __init__(self, gap_penalty=-8):
+        self.gap_penalty = gap_penalty
 
     def get_distance_matrix(self):
         pass
 
-    def get_score(self, char1, char2, gap_penalty):
+    def get_score(self, char1, char2):
         if char1 is '-' and char2 is '-':
             score = 1  # match
         elif char1 is '-' or char2 is '-':
-            score = gap_penalty  # gap
+            score = self.gap_penalty  # gap
         else:
             # mismatch
             distance_matrix = self.get_distance_matrix()
@@ -22,7 +24,8 @@ class SubstitutionMatrix:
 
 
 class PAM250(SubstitutionMatrix):
-    def __init__(self):
+    def __init__(self, gap_penalty):
+        super(PAM250, self).__init__(gap_penalty)
         self.distance_matrix = \
             {('W', 'F'): 0, ('L', 'R'): -3, ('S', 'P'): 1, ('V', 'T'): 0, ('Q', 'Q'): 4, ('N', 'A'): 0, ('Z', 'Y'): -4,
              ('W', 'R'): 2, ('Q', 'A'): 0, ('S', 'D'): 0, ('H', 'H'): 6, ('S', 'H'): -1, ('H', 'D'): 1, ('L', 'N'): -3,
@@ -97,7 +100,8 @@ class PAM250(SubstitutionMatrix):
 
 
 class Blosum62(SubstitutionMatrix):
-    def __init__(self):
+    def __init__(self, gap_penalty):
+        super(Blosum62, self).__init__(gap_penalty)
         self.distance_matrix = \
          {('W', 'F'): 1, ('L', 'R'): -2, ('S', 'P'): -1, ('V', 'T'): 0, ('Q', 'Q'): 5, ('N', 'A'): -2, ('Z', 'Y'): -2,
           ('W', 'R'): -3, ('Q', 'A'): -1, ('S', 'D'): 0, ('H', 'H'): 8, ('S', 'H'): -1, ('H', 'D'): -1, ('L', 'N'): -3,
@@ -152,7 +156,8 @@ class Blosum62(SubstitutionMatrix):
 
 
 class Blosum50(SubstitutionMatrix):
-    def __init__(self):
+    def __init__(self, gap_penalty):
+        super(Blosum50, self).__init__(gap_penalty)
         self.distance_matrix = \
             {('W', 'F'): 1, ('L', 'R'): -3, ('S', 'P'): -1, ('V', 'T'): 0,
             ('Q', 'Q'): 7, ('N', 'A'): -1, ('Z', 'Y'): -2, ('W', 'R'): -3,

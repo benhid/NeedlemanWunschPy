@@ -41,7 +41,7 @@ def get_time_of_execution(f):
 
 
 class NeedlemanWunschLinear():
-    def __init__(self, seqA, seqB, gap_penalty = -3, substitution_matrix = Blosum50()):
+    def __init__(self, seqA, seqB, gap_penalty=-8, substitution_matrix=Blosum50(-8)):
         self.seq_h = seqA  # seq A (horizontal, rows)
         self.seq_v = seqB  # seq B (vertical, columns)
         self.gap_penalty = gap_penalty  # gap penalty both for opening and extension (linear gap penalty)
@@ -61,7 +61,7 @@ class NeedlemanWunschLinear():
         """
 
         char1, char2 = self.seq_h[j-1], self.seq_v[i-1]
-        return self.substitution_matrix.get_score(char1, char2, self.gap_penalty)
+        return self.substitution_matrix.get_score(char1, char2)
 
     @get_time_of_execution
     def _compute_score_matrix(self):
