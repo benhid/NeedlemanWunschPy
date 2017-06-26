@@ -140,24 +140,21 @@ class NeedlemanWunschLinear():
         return seqAaln, seqBaln
 
     @get_time_of_execution
-    def _save_matrix_to_file(self, matrix, filename, dir='output/'):
-        """ Save matrix dataframe into a .csv file separated by commas.
-
-        :param matrix: Numpy matrix.
-        :param filename: Name of the file.
-        """
+    def _save_matrix_to_file(self, matrix, filename, output_dir):
+        """ Save matrix dataframe into a .csv file separated by commas. """
 
         data = pd.DataFrame(matrix, index=list(' ' + self.seq_v), columns=list(' ' + self.seq_h))
-
-        # Save to output directory
-        os.makedirs(os.path.dirname(dir), exist_ok=True)
-        data.to_csv(dir+filename+'.csv', sep=',', encoding='utf8')
+        data.to_csv(output_dir+filename+'.csv', sep=',', encoding='utf8')
 
     @get_time_of_execution
-    def get_alignment(self, save_score_matrix_to_file=False, filename='score_matrix'):
+    def get_alignment(self, save_score_matrix_to_file=False, filename='score_matrix', output_dir='output/'):
+        # Compute matrix
         self._compute_score_matrix()
 
         if save_score_matrix_to_file:
-            self._save_matrix_to_file(self.M, filename)
+            # Create output directory
+            os.makedirs(os.path.dirname(output_dir), exist_ok=True)
+            # Save to file
+            self._save_matrix_to_file(self.M, filename, output_dir)
 
         return self._compute_traceback()
