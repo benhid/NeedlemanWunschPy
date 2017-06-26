@@ -151,9 +151,10 @@ class NeedlemanWunschLinear():
         # Compute matrix
         self._compute_score_matrix()
 
+        # Create output directory
+        os.makedirs(os.path.dirname(output_dir), exist_ok=True)
+
         if save_score_matrix_to_file:
-            # Create output directory
-            os.makedirs(os.path.dirname(output_dir), exist_ok=True)
             # Save to file
             self._save_matrix_to_file(self.M, filename, output_dir)
 
